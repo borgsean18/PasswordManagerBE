@@ -18,9 +18,9 @@ DOWN will undo them
 
 apply new changes to your local/test DB: 
 ```
-migrate -database {DATABASE_URL} -path ./db_migrations up
+migrate -database 'postgres://sean_b:postgres@localhost:5432/passwordmanager?sslmode=disable' -path db/migrations up
 ```
 test if changes can be reversed:
 ```
-migrate -database {DATABASE_URL} -path ./db_migrations down
+migrate -database 'postgres://sean_b:postgres@localhost:5432/passwordmanager?sslmode=disable' -path db/migrations down
 ```

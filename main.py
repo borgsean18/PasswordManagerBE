@@ -5,7 +5,8 @@ from password import password_router
 
 app = FastAPI(
     title="passwordmanager",
-    version="1"
+    version="1",
+    root_path="8001"
 )
 
 app.include_router(user_router)
