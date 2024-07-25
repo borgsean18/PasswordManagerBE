@@ -1,2 +1,2 @@
 -- Down Migration
-DROP TABLE IF EXISTS password;
+DROP TABLE IF EXISTS passwords;

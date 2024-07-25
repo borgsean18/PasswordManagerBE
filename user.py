@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from models import LoginUser, LoginResponse, CreateUser, User, Response
 from database import psql_create_user, psql_search_user
 from access_token import create_access_token, decode_token
+from typing import Annotated
 
 user_router = APIRouter(prefix="/user")
 
@@ -22,12 +23,9 @@ async def login(user: LoginUser):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect password"
             )
-        
-        # Successful login
-        u = User(name=result['name'], email=result['email'], password=result['password'])
 
         access_token = create_access_token (
-            data={"email": user.email}
+            data={"email": result["email"]}
         )
 
         return LoginResponse(
@@ -35,8 +33,6 @@ async def login(user: LoginUser):
             message="Login successful",
             access_token=access_token,
             token_type="bearer",
-            user_id=result["id"],
-            name=u.name
         )
     
     except HTTPException as http_ex:
@@ -70,7 +66,7 @@ async def create_account(user: CreateUser):
         else:
             return Response(
                 status="fail",
-                message="Email address already in user"
+                message="Email address already taken"
             )
     
     except ValueError as e:
@@ -78,10 +74,17 @@ async def create_account(user: CreateUser):
     
 
 @user_router.get('/authenticate')
-async def authenticate(
-    authorization: str = Header(...)
+async def authenticate_user(
+    auth_token: Annotated[str | None, Header()] = None,
+    user_email: Annotated[str | None, Header()] = None
 ):
     try:
-        return decode_token(token=authorization)
-    except Exception as e:
-        pass
+        if (user_email == decode_token(auth_token)['email']) :
+            return {"message": "Success"}
+        
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Failed Auth"
+            )
+    except HTTPException as e:
+        return e
