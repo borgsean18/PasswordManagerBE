@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Header
 from typing import Annotated
 from app.user import authenticate_user
-from app.database import psql_create_record
+from app.database import psql_create_record, psql_get_record
 from models.records.models import Password
 
 password_router = APIRouter(prefix="/records", tags=["Records"])
@@ -13,10 +13,10 @@ async def create_record(
     user_email: Annotated[str | None, Header(...)] = None
     ):
     try:
-        auth = await authenticate_user(auth_token=auth_token, user_email=user_email)
+        await authenticate_user(auth_token=auth_token, user_email=user_email)
 
         # upload password to db
-        result = await psql_create_record(password=password) 
+        await psql_create_record(password=password) 
 
         return {"message":"success"}
     except Exception as e:
@@ -25,9 +25,21 @@ async def create_record(
 
 @password_router.get("/GetRecord/")
 async def get_record(
-    id: int
+    record_name:str = None,
+    auth_token: Annotated[str | None, Header(...)] = None,
+    user_email: Annotated[str | None, Header(...)] = None,
     ):
-    return id
+    try:
+        await authenticate_user(auth_token=auth_token, user_email=user_email)
+
+        record = await psql_get_record(user_email, record_name)
+
+        return {
+            "status":"200",
+            "message": record
+        }
+    except Exception as e:
+        return {"message":f"Exception: {e}"}
 
 
 @password_router.post("/UpdateRecord/")
@@ -37,10 +49,10 @@ async def update_record(
     user_email: Annotated[str | None, Header(...)] = None
     ):
     try:
-        auth = await authenticate_user(auth_token=auth_token, user_email=user_email)
+        await authenticate_user(auth_token=auth_token, user_email=user_email)
 
         # Update password in db if found
-        result = await psql_create_record(password=password)
+        await psql_create_record(password=password)
 
         return {"message":"success"}
     except Exception as e:

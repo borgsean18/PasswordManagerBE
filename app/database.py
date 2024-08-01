@@ -59,17 +59,20 @@ async def psql_create_record(password: Password):
         await conn.close()
 
 
-async def psql_update_record(password: Password):
+async def psql_get_record(
+        user_email:str,
+        record_name:str = "%"
+    ):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "INSERT INTO passwords (name, description, username, password, folder_id, user_id) VALUES ($1, $2, $3, $4, $5, $6);"
+        sql = "SELECT * FROM passwords WHERE user_id LIKE $1 AND name LIKE $2;"
 
-        result = await conn.execute(sql, password.name, password.description, password.username, password.password, password.folder_id, password.user_id)
+        result = await conn.execute(sql, user_email, record_name)
 
         return result
     
     except Exception:
-        raise Exception("Error with sql creating password")
+        return Exception("Error with sql creating password")
     finally:
         await conn.close()
