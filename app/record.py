@@ -6,7 +6,7 @@ from models.records.models import Password
 
 password_router = APIRouter(prefix="/records", tags=["Records"])
 
-@password_router.post("/CreateRecord")
+@password_router.post("/create")
 async def create_record(
     password: Password,
     auth_token: Annotated[str | None, Header(...)] = None,
@@ -23,7 +23,7 @@ async def create_record(
         return {"message": e}
 
 
-@password_router.get("/GetRecord/")
+@password_router.get("/get")
 async def get_record(
     record_name:str = None,
     auth_token: Annotated[str | None, Header(...)] = None,
