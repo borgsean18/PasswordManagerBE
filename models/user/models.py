@@ -1,5 +1,4 @@
 from pydantic import BaseModel, field_validator, EmailStr
-from typing import Optional
 
 class User(BaseModel):
     name: str
@@ -27,18 +26,3 @@ class Response(BaseModel):
 class LoginResponse(Response):
     access_token: str
     token_type: str
-
-
-class Folder(BaseModel):
-    name: str
-    icon: str
-    color: str
-
-
-class Password(BaseModel):
-    name: str
-    description: str
-    username: str
-    password: str
-    user_id: int
-    folder_id: Optional[int]

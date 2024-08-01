@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from user import user_router
-from password import password_router
+from app.user import user_router
+from app.password import password_router
 
 app = FastAPI(
     title="passwordmanager",

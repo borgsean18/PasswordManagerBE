@@ -1,6 +1,7 @@
 import os
 import asyncpg
-from models import User, Password
+from models.user.models import User
+from models.records.models import Password
 
 env = os.getenv("ENVIRONMENT", "local")
 

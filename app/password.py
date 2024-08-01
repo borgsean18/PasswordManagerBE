@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Header
-from user import authenticate_user
-from models import Password
 from typing import Annotated
-from database import psql_create_record
+from app.user import authenticate_user
+from app.database import psql_create_record
+from models.records.models import Password
 
-password_router = APIRouter(prefix="/password")
+password_router = APIRouter(prefix="/records", tags=["Records"])
 
 @password_router.post("/CreateRecord")
 async def create_record(

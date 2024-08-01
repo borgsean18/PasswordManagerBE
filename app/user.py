@@ -1,14 +1,14 @@
-from fastapi import APIRouter, status, HTTPException, Header
+from fastapi import APIRouter, Response as fastapiResponse, status, HTTPException, Header
 from fastapi.responses import JSONResponse
-from models import LoginUser, LoginResponse, User, Response
-from database import psql_create_user, psql_search_user
-from access_token import create_access_token, decode_token
 from typing import Annotated
+from models.user.models import LoginUser, LoginResponse, User, Response
+from app.database import psql_create_user, psql_search_user
+from app.access_token import create_access_token, decode_token
 
-user_router = APIRouter(prefix="/user")
+user_router = APIRouter(prefix="/user", tags=["user"])
 
 @user_router.post("/login", response_model=LoginResponse)
-async def login(user: LoginUser):
+async def login(user: LoginUser, response:fastapiResponse):
     try:
         result = await psql_search_user(user.email)
 
@@ -27,6 +27,10 @@ async def login(user: LoginUser):
         access_token = create_access_token (
             data={"email": result["email"]}
         )
+
+        # Create a cookie for the Token
+        response.set_cookie(key="Token", value=access_token)
+        response.set_cookie(key="email", value=result["email"])
 
         return LoginResponse(
             status="success",
