@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status, HTTPException, Header
 from fastapi.responses import JSONResponse
-from models import LoginUser, LoginResponse, CreateUser, User, Response
+from models import LoginUser, LoginResponse, User, Response
 from database import psql_create_user, psql_search_user
 from access_token import create_access_token, decode_token
 from typing import Annotated
@@ -48,11 +48,11 @@ async def login(user: LoginUser):
     
 
 @user_router.post("/create", response_model=Response)
-async def create_account(user: CreateUser):
+async def create_account(user: User):
     try:
         result = await psql_search_user(user.email)
         if (result is None):
-            result = await psql_create_user(user.name[0], user.email, user.password[0])
+            result = await psql_create_user(user=user)
             if result:
                 return Response(
                     status="ok",
@@ -87,4 +87,6 @@ async def authenticate_user(
                 detail="Failed Auth"
             )
     except HTTPException as e:
+        return e
+    except Exception as e:
         return e

@@ -30,8 +30,5 @@ RUN poetry install
 # Copy the source code into the container.
 COPY . /code
 
-# Expose the port that the application listens on.
-EXPOSE 8000
-
 # Run the application.
-CMD fastapi dev
+CMD ["fastapi", "run", "main.py", "--port", "80"]
