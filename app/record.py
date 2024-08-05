@@ -42,7 +42,7 @@ async def get_record(
         return {"message":f"Exception: {e}"}
 
 
-@password_router.post("/UpdateRecord/")
+@password_router.post("/update")
 async def update_record(
     password: Password,
     auth_token: Annotated[str | None, Header(...)] = None,
@@ -59,7 +59,7 @@ async def update_record(
         return {"message":e}
 
 
-@password_router.get("/DeleteRecord/")
+@password_router.get("/delete")
 async def delete_record(
     id: int
     ):
