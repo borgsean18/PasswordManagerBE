@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header
 from typing import Annotated
-from app.user import authenticate_user
+from app.user import authenticate_user, get_user_id
 from app.database import psql_create_record, psql_get_record
 from models.records.models import Password
 
@@ -23,7 +23,7 @@ async def create_record(
         return {"message": e}
 
 
-@password_router.get("/get")
+@password_router.get("/{record_name}")
 async def get_record(
     record_name:str = None,
     auth_token: Annotated[str | None, Header(...)] = None,
@@ -32,19 +32,25 @@ async def get_record(
     try:
         await authenticate_user(auth_token=auth_token, user_email=user_email)
 
-        record = await psql_get_record(user_email, record_name)
+        user_id = await get_user_id(user_email)
+
+        record = await psql_get_record(user_id, record_name)
 
         return {
             "status":"200",
             "message": record
         }
     except Exception as e:
-        return {"message":f"Exception: {e}"}
+        return {
+            "status":"400",
+            "message": e
+        }
 
 
-@password_router.post("/update")
+@password_router.post("/update/{record_id}")
 async def update_record(
     password: Password,
+    record_id: int,
     auth_token: Annotated[str | None, Header(...)] = None,
     user_email: Annotated[str | None, Header(...)] = None
     ):
@@ -59,8 +65,8 @@ async def update_record(
         return {"message":e}
 
 
-@password_router.get("/delete")
+@password_router.get("/delete/{record_id}")
 async def delete_record(
-    id: int
+    record_id: int
     ):
     return id

@@ -60,19 +60,20 @@ async def psql_create_record(password: Password):
 
 
 async def psql_get_record(
-        user_email:str,
-        record_name:str = "%"
+        user_id:int,
+        record_name:str
     ):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "SELECT * FROM passwords WHERE user_id LIKE $1 AND name LIKE $2;"
+        sql = "SELECT * FROM passwords WHERE user_id = $1 AND name LIKE $2;"
 
-        result = await conn.execute(sql, user_email, record_name)
+        result = await conn.fetch(sql, user_id, record_name)
 
         return result
     
     except Exception:
-        return Exception("Error with sql creating password")
+        raise Exception("Error with sql Getting password")
     finally:
-        await conn.close()
+        if conn:
+            await conn.close()
