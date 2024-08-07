@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Response as fastapiResponse, status, HTTPException, Header
 from fastapi.responses import JSONResponse
 from typing import Annotated
-from models.user.models import LoginUser, LoginResponse, User, Response
+from models.user import LoginUser, LoginResponse, User, Response
 from app.database import psql_create_user, psql_search_user
 from app.access_token import create_access_token, decode_token
 

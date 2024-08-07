@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Header
 from typing import Annotated
+from app.validate import is_alphanumeric
 from app.user import authenticate_user, get_user_id
 from app.database import psql_create_record, psql_get_record
-from models.records.models import Password
+from models.records import Password
 
 password_router = APIRouter(prefix="/records", tags=["Records"])
 
@@ -23,13 +24,17 @@ async def create_record(
         return {"message": e}
 
 
-@password_router.get("/{record_name}")
+@password_router.get("/")
 async def get_record(
-    record_name:str = None,
+    record_name: str = None,
     auth_token: Annotated[str | None, Header(...)] = None,
     user_email: Annotated[str | None, Header(...)] = None,
     ):
     try:
+        # Validate record_name
+        if record_name is not None:
+            is_alphanumeric(record_name)
+
         await authenticate_user(auth_token=auth_token, user_email=user_email)
 
         user_id = await get_user_id(user_email)
