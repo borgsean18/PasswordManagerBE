@@ -7,10 +7,9 @@ class Folder(BaseModel):
     color: str
 
 
-class Password(BaseModel):
+class Record(BaseModel):
     name: str
     description: str
     username: str
     password: str
-    user_id: int
     folder_id: Optional[int]

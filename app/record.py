@@ -1,23 +1,25 @@
 from fastapi import APIRouter, Header
 from typing import Annotated
 from app.validate import is_alphanumeric
-from app.user import authenticate_user, get_user_id
+from app.user import authenticate_user
 from app.database import psql_create_record, psql_get_record, psql_delete_record, psql_search_user
-from models.records import Password
+from models.records import Record
 
 password_router = APIRouter(prefix="/records", tags=["Records"])
 
 @password_router.post("/create")
 async def create_record(
-    password: Password,
+    record: Record,
     auth_token: Annotated[str | None, Header(...)] = None,
     user_email: Annotated[str | None, Header(...)] = None
     ):
     try:
         await authenticate_user(auth_token=auth_token, user_email=user_email)
 
+        user = await psql_search_user(user_email)
+
         # upload password to db
-        await psql_create_record(password=password) 
+        await psql_create_record(record=record, user_id=user['id']) 
 
         return {"message":"success"}
     except Exception as e:
@@ -37,9 +39,9 @@ async def get_record(
 
         await authenticate_user(auth_token=auth_token, user_email=user_email)
 
-        user_id = await get_user_id(user_email)
+        user = await psql_search_user(user_email)
 
-        record = await psql_get_record(user_id, record_name)
+        record = await psql_get_record(user['id'], record_name)
 
         return {
             "status":"200",
@@ -54,7 +56,7 @@ async def get_record(
 
 @password_router.post("/update/{record_id}")
 async def update_record(
-    password: Password,
+    record: Record,
     record_id: int,
     auth_token: Annotated[str | None, Header(...)] = None,
     user_email: Annotated[str | None, Header(...)] = None
@@ -81,6 +83,7 @@ async def delete_record(
 
         user_id = await psql_search_user(user_email)
 
+        # Make sure it is not possible for user to delete record they dont own
         result = await psql_delete_record(record_id, user_id['id'])
     except Exception as e:
         return {

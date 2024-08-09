@@ -1,5 +1,5 @@
 -- Up Migration
-CREATE TABLE IF NOT EXISTS passwords (
+CREATE TABLE IF NOT EXISTS record (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description VARCHAR(255) NOT NULL,

@@ -94,16 +94,3 @@ async def authenticate_user(
         raise e
     except Exception as e:
         raise e
-
-async def get_user_id(
-    user_email: str
-):
-    try:
-        user = await psql_search_user(user_email)
-
-        return user['id']
-    except Exception as e:
-        raise {
-            "status": 400,
-            "message": e
-        }

@@ -1,7 +1,7 @@
 import os
 import asyncpg
 from models.user import User
-from models.records import Password
+from models.records import Record
 
 env = os.getenv("ENVIRONMENT", "local")
 
@@ -43,13 +43,13 @@ async def psql_create_user(user: User):
         await conn.close()
 
 
-async def psql_create_record(password: Password):
+async def psql_create_record(record: Record, user_id: int):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "INSERT INTO passwords (name, description, username, password, folder_id, user_id) VALUES ($1, $2, $3, $4, $5, $6);"
+        sql = "INSERT INTO record (name, description, username, password, folder_id, user_id) VALUES ($1, $2, $3, $4, $5, $6);"
 
-        result = await conn.execute(sql, password.name, password.description, password.username, password.password, password.folder_id, password.user_id)
+        result = await conn.execute(sql, record.name, record.description, record.username, record.password, record.folder_id, user_id)
 
         return result
     
@@ -66,7 +66,7 @@ async def psql_get_record(
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "SELECT * FROM passwords WHERE user_id = $1 AND name LIKE $2;"
+        sql = "SELECT * FROM record WHERE user_id = $1 AND name LIKE $2;"
 
         result = await conn.fetch(sql, user_id, record_name)
 
@@ -83,7 +83,7 @@ async def psql_delete_record(record_id: int, user_id: int):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "DELETE FROM passwords WHERE id = $1 AND user_id = $2 LIMIT 1"
+        sql = "DELETE FROM record WHERE id = $1 AND user_id = $2 LIMIT 1"
 
         result = await conn.execute(sql, record_id, user_id)
 
