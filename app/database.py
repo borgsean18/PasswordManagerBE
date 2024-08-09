@@ -77,3 +77,16 @@ async def psql_get_record(
     finally:
         if conn:
             await conn.close()
+
+
+async def psql_delete_record(record_id: int, user_id: int):
+    try:
+        conn = await asyncpg.connect(postgres_uri)
+
+        sql = "DELETE FROM passwords WHERE id = $1 AND user_id = $2 LIMIT 1"
+
+        result = await conn.execute(sql, record_id, user_id)
+
+        return result
+    except Exception:
+        raise Exception("Error deleting row")

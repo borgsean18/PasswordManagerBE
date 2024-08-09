@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header
 from typing import Annotated
 from app.validate import is_alphanumeric
 from app.user import authenticate_user, get_user_id
-from app.database import psql_create_record, psql_get_record
+from app.database import psql_create_record, psql_get_record, psql_delete_record, psql_search_user
 from models.records import Password
 
 password_router = APIRouter(prefix="/records", tags=["Records"])
@@ -63,7 +63,7 @@ async def update_record(
         await authenticate_user(auth_token=auth_token, user_email=user_email)
 
         # Update password in db if found
-        await psql_create_record(password=password)
+        # await psql_create_record(password=password)
 
         return {"message":"success"}
     except Exception as e:
@@ -72,6 +72,18 @@ async def update_record(
 
 @password_router.get("/delete/{record_id}")
 async def delete_record(
-    record_id: int
+    record_id: int = None,
+    auth_token: Annotated[str | None, Header(...)] = None,
+    user_email: Annotated[str | None, Header(...)] = None,
     ):
-    return id
+    try:
+        await authenticate_user(auth_token=auth_token, user_email=user_email)
+
+        user_id = await psql_search_user(user_email)
+
+        result = await psql_delete_record(record_id, user_id['id'])
+    except Exception as e:
+        return {
+            "status": 500,
+            "message": e.args
+        }
