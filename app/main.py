@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.user import user_router
-from app.record import password_router
+from app.record import record_router
 
 app = FastAPI(
     title="passwordmanager",
@@ -9,7 +9,7 @@ app = FastAPI(
 )
 
 app.include_router(user_router)
-app.include_router(password_router)
+app.include_router(record_router)
 
 origins = [
     "http://127.0.0.1:8080",

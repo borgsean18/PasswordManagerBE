@@ -5,9 +5,9 @@ from app.user import authenticate_user
 from app.database import psql_create_record, psql_get_record, psql_delete_record, psql_search_user, psql_update_record
 from models.records import Record
 
-password_router = APIRouter(prefix="/records", tags=["Records"])
+record_router = APIRouter(prefix="/records", tags=["Records"])
 
-@password_router.post("/create")
+@record_router.post("/create")
 async def create_record(
     record: Record,
     auth_token: Annotated[str | None, Header(...)] = None,
@@ -25,10 +25,28 @@ async def create_record(
     except Exception as e:
         return {"message": e.args}
 
+@record_router.get("/{user_id}")
+async def get_all_records(
+    user_id:int,
+    auth_token: Annotated[str | None, Header(...)] = None,
+    user_email: Annotated[str | None, Header(...)] = None,
+    ):
+    try:
+        await authenticate_user(auth_token=auth_token, user_email=user_email)
 
-@password_router.get("/")
+        user = await psql_search_user(user_email)
+
+        
+
+    except Exception as e:
+        return {
+            "status": 400,
+            "message": e
+        }
+
+@record_router.get("/{record_name}")
 async def get_record(
-    record_name: str = None,
+    record_name: str,
     auth_token: Annotated[str | None, Header(...)] = None,
     user_email: Annotated[str | None, Header(...)] = None,
     ):
@@ -54,7 +72,7 @@ async def get_record(
         }
 
 
-@password_router.post("/update/{record_id}")
+@record_router.post("/update/{record_id}")
 async def update_record(
     record_id: int,
     record_data: Record,
@@ -78,7 +96,7 @@ async def update_record(
         }
 
 
-@password_router.get("/delete/{record_id}")
+@record_router.get("/delete/{record_id}")
 async def delete_record(
     record_id: int = None,
     auth_token: Annotated[str | None, Header(...)] = None,
