@@ -23,7 +23,7 @@ async def create_record(
 
         return {"message":"success"}
     except Exception as e:
-        return {"message": e}
+        return {"message": e.args}
 
 
 @password_router.get("/")
@@ -41,7 +41,7 @@ async def get_record(
 
         user = await psql_search_user(user_email)
 
-        record = await psql_get_record(user['id'], record_name)
+        record = await psql_get_record(user_id=user['id'], record_name=record_name)
 
         return {
             "status":"200",
@@ -57,6 +57,7 @@ async def get_record(
 @password_router.post("/update/{record_id}")
 async def update_record(
     record_id: int,
+    record_data: Record,
     auth_token: Annotated[str | None, Header(...)] = None,
     user_email: Annotated[str | None, Header(...)] = None
     ):
@@ -65,11 +66,16 @@ async def update_record(
 
         user = await psql_search_user(user_email)
 
-        record = await psql_update_record(record_id= record_id)
+        record = await psql_get_record(user_id=user['id'], record_id=record_id)
 
-        return {"message":"success"}
+        response = await psql_update_record(record_id=record_id, user_id=user['id'], record_data=record_data)
+
+        return response
     except Exception as e:
-        return {"message":e}
+        return {
+            "status": 400,
+            "message":e.args
+        }
 
 
 @password_router.get("/delete/{record_id}")

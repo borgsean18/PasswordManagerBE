@@ -2,6 +2,7 @@ import os
 import asyncpg
 from models.user import User
 from models.records import Record
+from .exceptions import RecordNotFoundException
 
 env = os.getenv("ENVIRONMENT", "local")
 
@@ -77,33 +78,41 @@ async def psql_get_record(
         record_identifier = None
 
         if record_name is not None:
-            sql = "SELECT * FROM record WHERE user_id = $1 AND name LIKE $2;"
+            sql = "SELECT * FROM record WHERE user_id = $1 AND name = $2;"
             record_identifier = record_name
 
         if record_id is not None:
-            sql = "SELECT * FROM record WHERE user_id = $1 AND id LIKE $2;"
+            sql = "SELECT * FROM record WHERE user_id = $1 AND id = $2;"
             record_identifier = record_id
 
-        result = await conn.fetch(sql, user_id, record_identifier)
+        result = await conn.fetchrow(sql, user_id, record_identifier)
+
+        if result is None:
+            raise RecordNotFoundException
 
         return result
     
+    except RecordNotFoundException:
+        raise RecordNotFoundException("Record was not found")
     except Exception:
-        raise Exception("Error with sql Getting password")
+        raise Exception("Error with sql getting record")
     finally:
         if conn:
             await conn.close()
 
 
-async def psql_update_record(record_id: int, user_id: int):
+async def psql_update_record(record_id: int, user_id: int, record_data: Record):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        record = await psql_get_record(user_id=user_id, record_id=record_id)
+        sql = "UPDATE record SET name = $1, description = $2, username = $3, password = $4, folder_id = $5 WHERE id = $6 AND user_id = $7;"
 
-        sql = "UPDATE record SET name = $1, description = $2, username = $3, password = $4, folder_id = $5 WHERE id = $6;"
+        result = await conn.execute(sql, record_data.name, record_data.description, record_data.username, record_data.password, record_data.folder_id, record_id, user_id)
 
-        result = await conn.execute(sql, )
+        return {
+            "status":200,
+            "message": "success"
+            }
     except Exception:
         raise Exception("Failed to update record")
 
