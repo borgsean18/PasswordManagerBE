@@ -1,4 +1,5 @@
 import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
@@ -12,5 +13,9 @@ def decode_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
+    except (ExpiredSignatureError, InvalidTokenError):
+        return "error"
     except Exception as e:
-        return e
+        # Log the unexpected error
+        print(f"Unexpected error decoding token: {str(e)}")
+        return None

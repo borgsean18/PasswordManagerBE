@@ -4,7 +4,7 @@ from models.user import LoginUser, LoginResponse, User, Response
 from app.database import psql_create_user, psql_search_user
 from app.access_token import create_access_token
 
-user_router = APIRouter(prefix="/user", tags=["user"])
+user_router = APIRouter(prefix="/user", tags=["User"])
 
 @user_router.post("/login", response_model=LoginResponse)
 async def login(user: LoginUser, response: fastapiResponse):

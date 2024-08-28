@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi.responses import JSONResponse
 from app.access_token import decode_token
 
-security_router = APIRouter(prefix="/security", tags=["security"])
+security_router = APIRouter(prefix="/security", tags=["Security"])
 
 @security_router.get("/auth")
 async def auth(
@@ -17,7 +17,15 @@ async def auth(
                 content={"status": "fail", "message": "Missing auth token or user email"}
             )
 
-        if user_email == decode_token(auth_token)['email']:
+        decoded_token = decode_token(auth_token)
+
+        if "error" in decoded_token:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"status": "fail", "message": f"Token is invalid: {decoded_token['error']}"}
+            )
+
+        if user_email == decoded_token.get('email'):
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={"status": "success", "message": "Authentication successful"}

@@ -55,7 +55,7 @@ async def psql_create_record(record: Record, user_id: int):
         return result
     
     except Exception:
-        raise Exception("Error with sql creating password")
+        raise Exception("Error with sql creating record")
     finally:
         await conn.close()
 
@@ -71,8 +71,6 @@ async def psql_get_record(
     '''
     try:
         conn = await asyncpg.connect(postgres_uri)
-
-        sql = ""
 
         sql = "SELECT * FROM record WHERE user_id = $1 AND name LIKE $2;"
 
@@ -92,13 +90,30 @@ async def psql_get_record(
             await conn.close()
 
 
+async def psql_get_all_records(user_id: int):
+    try:
+        conn = await asyncpg.connect(postgres_uri)
+
+        sql = "SELECT name, folder_id FROM record WHERE user_id = $1;"
+
+        results = await conn.fetch(sql, user_id)
+
+        return results
+    
+    except Exception:
+        raise Exception("Error retrieving user records")
+    finally:
+        if conn:
+            await conn.close()
+
+
 async def psql_update_record(record_id: int, user_id: int, record_data: Record):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
         sql = "UPDATE record SET name = $1, description = $2, username = $3, password = $4, folder_id = $5 WHERE id = $6 AND user_id = $7;"
 
-        result = await conn.execute(sql, record_data.name, record_data.description, record_data.username, record_data.password, record_data.folder_id, record_id, user_id)
+        await conn.execute(sql, record_data.name, record_data.description, record_data.username, record_data.password, record_data.folder_id, record_id, user_id)
 
         return {
             "status":200,
