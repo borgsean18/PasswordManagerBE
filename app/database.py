@@ -62,7 +62,6 @@ async def psql_create_record(record: Record, user_id: int):
 
 async def psql_get_record(
         user_id:int,
-        record_id: str = None,
         record_name:str = None
     ):
     '''
@@ -75,17 +74,9 @@ async def psql_get_record(
 
         sql = ""
 
-        record_identifier = None
+        sql = "SELECT * FROM record WHERE user_id = $1 AND name LIKE $2;"
 
-        if record_name is not None:
-            sql = "SELECT * FROM record WHERE user_id = $1 AND name = $2;"
-            record_identifier = record_name
-
-        if record_id is not None:
-            sql = "SELECT * FROM record WHERE user_id = $1 AND id = $2;"
-            record_identifier = record_id
-
-        result = await conn.fetchrow(sql, user_id, record_identifier)
+        result = await conn.fetchrow(sql, user_id, record_name)
 
         if result is None:
             raise RecordNotFoundException
