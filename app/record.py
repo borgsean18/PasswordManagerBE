@@ -83,7 +83,7 @@ async def update_record(
             content={"status": "error", "message": str(e)}
         )
 
-@record_router.delete("/{record_id}")
+@record_router.delete("/{record_id}/delete")
 async def delete_record(
     record_id: int = None,
     user: dict = Depends(get_current_user)

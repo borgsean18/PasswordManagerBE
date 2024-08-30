@@ -1,10 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class Folder(BaseModel):
+class Group(BaseModel):
     name: str
     icon: str
-    color: str
 
 
 class Record(BaseModel):
@@ -12,4 +11,5 @@ class Record(BaseModel):
     description: str
     username: str
     password: str
-    folder_id: Optional[int]
+    is_weak: bool
+    group_id: Optional[str]

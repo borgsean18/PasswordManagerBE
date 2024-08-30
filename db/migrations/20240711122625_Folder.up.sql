@@ -1,8 +1,0 @@
--- Up Migration
-CREATE TABLE IF NOT EXISTS folder (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    color VARCHAR(255) NOT NULL,
-    user_id BIGINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
