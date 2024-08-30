@@ -1,8 +1,10 @@
 import os
 import asyncpg
+from uuid import UUID
 from models.user import User
 from models.records import Record
 from .exceptions import RecordNotFoundException
+from app.encryption import encrypt_data, decrypt_data
 
 env = os.getenv("ENVIRONMENT", "local")
 
@@ -44,18 +46,25 @@ async def psql_create_user(user: User):
         await conn.close()
 
 
-async def psql_create_record(record: Record, user_id: int):
+async def psql_create_record(record: Record, user_id: str):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "INSERT INTO record (name, description, username, password, folder_id, user_id) VALUES ($1, $2, $3, $4, $5, $6);"
+        sql = "INSERT INTO record (id, name, description, username, password, is_weak, user_id, group_id) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7) RETURNING id;"
 
-        result = await conn.execute(sql, record.name, record.description, record.username, record.password, record.folder_id, user_id)
+        # Encrypt sensitive data
+        encrypted_username = encrypt_data(record.username)
+        encrypted_password = encrypt_data(record.password)
+
+        # Convert UUID to string
+        user_id_str = str(user_id)
+
+        result = await conn.fetchval(sql, record.name, record.description, encrypted_username, encrypted_password, record.is_weak, user_id_str, record.group_id)
 
         return result
     
-    except Exception:
-        raise Exception("Error with sql creating record")
+    except Exception as e:
+        raise Exception(f"Error creating record: {str(e)}")
     finally:
         await conn.close()
 
@@ -78,6 +87,10 @@ async def psql_get_record(
 
         if result is None:
             raise RecordNotFoundException
+
+        # Decrypt sensitive data
+        result['username'] = decrypt_data(result['username'])
+        result['password'] = decrypt_data(result['password'])
 
         return result
     
@@ -113,7 +126,11 @@ async def psql_update_record(record_id: int, user_id: int, record_data: Record):
 
         sql = "UPDATE record SET name = $1, description = $2, username = $3, password = $4, folder_id = $5 WHERE id = $6 AND user_id = $7;"
 
-        await conn.execute(sql, record_data.name, record_data.description, record_data.username, record_data.password, record_data.folder_id, record_id, user_id)
+        # Encrypt sensitive data
+        encrypted_username = encrypt_data(record_data.username)
+        encrypted_password = encrypt_data(record_data.password)
+
+        await conn.execute(sql, record_data.name, record_data.description, encrypted_username, encrypted_password, record_data.folder_id, record_id, user_id)
 
         return {
             "status":200,

@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from app.dependencies import get_current_user

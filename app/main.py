@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.user import user_router
 from app.record import record_router
 from app.security import security_router
+
 app = FastAPI(
     title="Password Manager",
     version="1"

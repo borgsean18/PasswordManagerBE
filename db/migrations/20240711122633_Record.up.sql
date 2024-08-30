@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS record (
     password VARCHAR(255) NOT NULL,
     is_weak BOOLEAN NOT NULL DEFAULT FALSE,
     user_id UUID NOT NULL,
-    folder_id UUID
+    group_id UUID 
 );
