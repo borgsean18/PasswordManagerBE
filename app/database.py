@@ -5,6 +5,7 @@ from models.user import User
 from models.records import Record
 from .exceptions import RecordNotFoundException
 from app.encryption import encrypt_data, decrypt_data
+import logging
 
 env = os.getenv("ENVIRONMENT", "local")
 
@@ -13,6 +14,7 @@ if (os.getenv("ENVIRONMENT", "local") == "local"):
 else: 
     postgres_uri = ""
 
+logging.basicConfig(level=logging.ERROR)
 
 async def psql_search_user(user_email):
     try:
@@ -50,16 +52,21 @@ async def psql_create_record(record: Record, user_id: str):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "INSERT INTO record (id, name, description, username, password, is_weak, user_id, group_id) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7) RETURNING id;"
+        sql = "INSERT INTO record (name, description, username, password, is_weak, user_id, group_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;"
 
         # Encrypt sensitive data
         encrypted_username = encrypt_data(record.username)
         encrypted_password = encrypt_data(record.password)
 
-        # Convert UUID to string
-        user_id_str = str(user_id)
+        # Handle group_id: if it's not a valid UUID, set it to None
+        group_id = None
+        if record.group_id:
+            try:
+                group_id = UUID(str(record.group_id))
+            except ValueError:
+                logging.warning(f"Invalid group_id provided: {record.group_id}. Setting to None.")
 
-        result = await conn.fetchval(sql, record.name, record.description, encrypted_username, encrypted_password, record.is_weak, user_id_str, record.group_id)
+        result = await conn.fetchval(sql, record.name, record.description, encrypted_username, encrypted_password, record.is_weak, user_id, group_id)
 
         return result
     
@@ -70,48 +77,66 @@ async def psql_create_record(record: Record, user_id: str):
 
 
 async def psql_get_record(
-        user_id:int,
-        record_name:str = None
+        user_id: str,
+        record_id: str
     ):
     '''
-    Get a record by name or by ID.
-    - Used as a search feature for users to get records by name
-    - Used to search for records by ID internally.
+    Get a record by ID.
     '''
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "SELECT * FROM record WHERE user_id = $1 AND name LIKE $2;"
+        sql = "SELECT * FROM record WHERE user_id = $1 AND id = $2;"
 
-        result = await conn.fetchrow(sql, user_id, record_name)
+        result = await conn.fetchrow(sql, user_id, record_id)
 
         if result is None:
-            raise RecordNotFoundException
+            raise RecordNotFoundException("Record was not found")
 
-        # Decrypt sensitive data
-        result['username'] = decrypt_data(result['username'])
-        result['password'] = decrypt_data(result['password'])
+        # Convert result to a dictionary
+        result_dict = dict(result)
 
-        return result
+        # Convert UUID fields to strings
+        for key, value in result_dict.items():
+            if isinstance(value, UUID):
+                result_dict[key] = str(value)
+
+        # Decrypt username and password
+        try:
+            result_dict['username'] = decrypt_data(result_dict['username'])
+            result_dict['password'] = decrypt_data(result_dict['password'])
+        except Exception as e:
+            logging.error(f"Failed to decrypt username or password for record {record_id}: {str(e)}")
+            result_dict['decryption_failed'] = True
+
+        return result_dict
     
-    except RecordNotFoundException:
-        raise RecordNotFoundException("Record was not found")
-    except Exception:
-        raise Exception("Error with sql getting record")
+    except RecordNotFoundException as e:
+        raise e
+    except asyncpg.PostgresError as e:
+        raise Exception(f"Database error: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Unexpected error: {str(e)}")
     finally:
         if conn:
             await conn.close()
 
 
-async def psql_get_all_records(user_id: int):
+async def psql_get_all_records(user_id: str):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "SELECT name, folder_id FROM record WHERE user_id = $1;"
+        sql = "SELECT id, name, group_id FROM record WHERE user_id = $1;"
 
         results = await conn.fetch(sql, user_id)
 
-        return results
+        # Convert UUIDs to strings
+        serializable_results = [
+            {key: str(value) if isinstance(value, UUID) else value for key, value in record.items()}
+            for record in results
+        ]
+
+        return serializable_results
     
     except Exception:
         raise Exception("Error retrieving user records")
@@ -120,27 +145,45 @@ async def psql_get_all_records(user_id: int):
             await conn.close()
 
 
-async def psql_update_record(record_id: int, user_id: int, record_data: Record):
+async def psql_update_record(record_id: str, user_id: str, record_data: Record):
     try:
         conn = await asyncpg.connect(postgres_uri)
 
-        sql = "UPDATE record SET name = $1, description = $2, username = $3, password = $4, folder_id = $5 WHERE id = $6 AND user_id = $7;"
+        sql = """
+        UPDATE record 
+        SET name = $1, description = $2, username = $3, password = $4, is_weak = $5, group_id = $6 
+        WHERE id = $7 AND user_id = $8;
+        """
 
         # Encrypt sensitive data
         encrypted_username = encrypt_data(record_data.username)
         encrypted_password = encrypt_data(record_data.password)
 
-        await conn.execute(sql, record_data.name, record_data.description, encrypted_username, encrypted_password, record_data.folder_id, record_id, user_id)
+        # Handle group_id: if it's not a valid UUID, set it to None
+        group_id = None
+        if record_data.group_id:
+            try:
+                group_id = UUID(str(record_data.group_id))
+            except ValueError:
+                logging.warning(f"Invalid group_id provided: {record_data.group_id}. Setting to None.")
 
-        return {
-            "status":200,
-            "message": "success"
-            }
-    except Exception:
-        raise Exception("Failed to update record")
+        result = await conn.execute(sql, record_data.name, record_data.description, 
+                                    encrypted_username, encrypted_password, 
+                                    record_data.is_weak, group_id, 
+                                    record_id, user_id)
+
+        if result == "UPDATE 0":
+            raise Exception("No record found to update")
+
+        return {"status": "success", "message": "Record updated successfully"}
+    except Exception as e:
+        raise Exception(f"Failed to update record: {str(e)}")
+    finally:
+        if conn:
+            await conn.close()
 
 
-async def psql_delete_record(record_id: int, user_id: int):
+async def psql_delete_record(record_id: str, user_id: str):
     try:
         conn = await asyncpg.connect(postgres_uri)
 

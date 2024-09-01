@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from app.dependencies import get_current_user
 from app.database import psql_create_record, psql_get_record, psql_delete_record, psql_update_record, psql_get_all_records
 from models.records import Record
+from uuid import UUID
 
 record_router = APIRouter(prefix="/records", tags=["Records"])
 
@@ -12,7 +13,7 @@ async def create_record(
     user: dict = Depends(get_current_user)
 ):
     try:
-        await psql_create_record(record=record, user_id=user['id'])
+        await psql_create_record(record=record, user_id=str(user['id']))
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={"status": "success", "message": "Record created successfully"}
@@ -28,9 +29,12 @@ async def get_all_records(
     user: dict = Depends(get_current_user)
 ):
     try:
-        records = await psql_get_all_records(user_id=user['id'])
-        # Convert asyncpg.Record objects to dictionaries
-        serializable_records = [dict(record.items()) for record in records]
+        records = await psql_get_all_records(user_id=str(user['id']))
+        # Convert asyncpg.Record objects to dictionaries and ensure UUIDs are converted to strings
+        serializable_records = [
+            {key: str(value) if isinstance(value, UUID) else value for key, value in record.items()}
+            for record in records
+        ]
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
@@ -45,13 +49,13 @@ async def get_all_records(
             content={"status": "error", "message": str(e)}
         )
 
-@record_router.get("/{record_name}")
+@record_router.get("/{record_id}")
 async def get_record(
-    record_name: str,
+    record_id: str,
     user: dict = Depends(get_current_user)
 ):
     try:
-        record = await psql_get_record(user_id=user['id'], record_name=record_name)
+        record = await psql_get_record(user_id=str(user['id']), record_id=str(record_id))
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={"status": "success", "message": record}
@@ -64,13 +68,15 @@ async def get_record(
 
 @record_router.post("/{record_id}/update")
 async def update_record(
-    record_id: int,
+    record_id: str,
     record_data: Record,
     user: dict = Depends(get_current_user)
 ):
     try:
-        await psql_get_record(user_id=user['id'], record_id=record_id)
-        await psql_update_record(record_id=record_id, user_id=user['id'], record_data=record_data)
+        # Check if the record exists and belongs to the user
+        await psql_get_record(user_id=str(user['id']), record_id=record_id)
+        # Update the record
+        await psql_update_record(record_id=record_id, user_id=str(user['id']), record_data=record_data)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={"status": "success", "message": "Record updated successfully"}
@@ -83,11 +89,11 @@ async def update_record(
 
 @record_router.delete("/{record_id}/delete")
 async def delete_record(
-    record_id: int = None,
+    record_id: str,
     user: dict = Depends(get_current_user)
 ):
     try:
-        await psql_delete_record(record_id, user['id'])
+        await psql_delete_record(record_id=str(record_id), user_id=str(user['id']))
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={"status": "success", "message": "Deleted Record Successfully"}

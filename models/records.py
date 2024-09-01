@@ -8,7 +8,6 @@ class Group(BaseModel):
 
 
 class Record(BaseModel):
-    id: Optional[UUID] = None
     name: str
     description: str
     username: str
