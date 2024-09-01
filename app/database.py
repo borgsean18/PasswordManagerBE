@@ -9,12 +9,10 @@ import logging
 
 env = os.getenv("ENVIRONMENT", "local")
 
-if (os.getenv("ENVIRONMENT", "local") == "local"):
-    postgres_uri = "postgres://sean_b:postgres@localhost:5432/passwordmanager?sslmode=disable"
-else: 
-    postgres_uri = ""
+postgres_uri = os.getenv("DATABASE_URL", "postgresql://sean_b:postgres@db:5432/passwordmanager")
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def psql_search_user(user_email):
     try:
@@ -26,10 +24,12 @@ async def psql_search_user(user_email):
 
         return result
 
-    except Exception :
-        return "Error", "User doesnt exist"
+    except Exception as e:
+        logger.error(f"Error connecting to database: {str(e)}")
+        return "Error", "User doesn't exist"
     finally:
-        await conn.close()
+        if conn:
+            await conn.close()
 
 
 async def psql_create_user(user: User):
