@@ -1,11 +1,5 @@
 from pydantic import BaseModel
 from typing import Optional
-from uuid import UUID
-
-class Group(BaseModel):
-    name: str
-    icon: str
-
 
 class Record(BaseModel):
     name: str

@@ -4,7 +4,7 @@ from uuid import UUID
 from models.user import User
 from models.records import Record
 from .exceptions import RecordNotFoundException
-from app.encryption import encrypt_data, decrypt_data
+from app.encryption import deterministic_encrypt_data, deterministic_decrypt_data
 import logging
 
 env = os.getenv("ENVIRONMENT", "local")
@@ -19,8 +19,16 @@ async def psql_search_user(user_email):
         conn = await asyncpg.connect(postgres_uri)
 
         sql = "SELECT * FROM users WHERE email = $1"
+
+        encrypted_email = deterministic_encrypt_data(user_email)
         
-        result = await conn.fetchrow(sql, user_email)
+        result = await conn.fetchrow(sql, encrypted_email)
+
+        if result:
+            # Decrypt the email in the result
+            result = dict(result)
+            result['email'] = deterministic_decrypt_data(result['email'])
+            result['password'] = deterministic_decrypt_data(result['password'])
 
         return result
 
@@ -37,8 +45,11 @@ async def psql_create_user(user: User):
         conn = await asyncpg.connect(postgres_uri)
 
         sql = "INSERT INTO users (name, email, password) VALUES ($1, $2, $3);"
+
+        encrypted_email = deterministic_encrypt_data(user.email)
+        encrypted_password = deterministic_encrypt_data(user.password)
         
-        result = await conn.execute(sql, user.name, user.email, user.password)
+        result = await conn.execute(sql, user.name, encrypted_email, encrypted_password)
 
         return result
 
@@ -55,8 +66,8 @@ async def psql_create_record(record: Record, user_id: str):
         sql = "INSERT INTO record (name, description, username, password, is_weak, user_id, group_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;"
 
         # Encrypt sensitive data
-        encrypted_username = encrypt_data(record.username)
-        encrypted_password = encrypt_data(record.password)
+        encrypted_username = deterministic_encrypt_data(record.username)
+        encrypted_password = deterministic_encrypt_data(record.password)
 
         # Handle group_id: if it's not a valid UUID, set it to None
         group_id = None
@@ -103,8 +114,8 @@ async def psql_get_record(
 
         # Decrypt username and password
         try:
-            result_dict['username'] = decrypt_data(result_dict['username'])
-            result_dict['password'] = decrypt_data(result_dict['password'])
+            result_dict['username'] = deterministic_decrypt_data(result_dict['username'])
+            result_dict['password'] = deterministic_decrypt_data(result_dict['password'])
         except Exception as e:
             logging.error(f"Failed to decrypt username or password for record {record_id}: {str(e)}")
             result_dict['decryption_failed'] = True
@@ -156,8 +167,8 @@ async def psql_update_record(record_id: str, user_id: str, record_data: Record):
         """
 
         # Encrypt sensitive data
-        encrypted_username = encrypt_data(record_data.username)
-        encrypted_password = encrypt_data(record_data.password)
+        encrypted_username = deterministic_encrypt_data(record_data.username)
+        encrypted_password = deterministic_encrypt_data(record_data.password)
 
         # Handle group_id: if it's not a valid UUID, set it to None
         group_id = None
