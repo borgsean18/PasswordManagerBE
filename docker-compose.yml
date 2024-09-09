@@ -5,17 +5,36 @@ services:
     image: postgres:13
     environment:
       POSTGRES_DB: passwordmanager
-      POSTGRES_USER: sean_b
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - 5431:5432
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sean_b -d passwordmanager"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d passwordmanager"]
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  migrate:
+    image: postgres:13
+    command: >
+      bash -c "
+        while ! pg_isready -h db -U postgres -d passwordmanager; do
+          sleep 1;
+        done;
+        for file in /migrations/*.up.sql; do
+          psql -h db -U postgres -d passwordmanager -f $$file;
+        done
+      "
+    volumes:
+      - ./db/migrations:/migrations
+    environment:
+      PGPASSWORD: postgres
+    depends_on:
+      db:
+        condition: service_healthy
 
   app:
     build:
@@ -24,8 +43,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgresql://sean_b:postgres@db:5432/passwordmanager
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/passwordmanager
       ENVIRONMENT: production
     ports:
       - "8000:8000"
