@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 # Generate or load a key for encryption
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
-
 if not ENCRYPTION_KEY:
     ENCRYPTION_KEY = Fernet.generate_key()
-    os.environ["ENCRYPTION_KEY"] = str(ENCRYPTION_KEY)
+    os.environ["ENCRYPTION_KEY"] = ENCRYPTION_KEY.decode()
+    logger.info(f"Generated new encryption key: {ENCRYPTION_KEY}")
 
 fernet = Fernet(ENCRYPTION_KEY)
 

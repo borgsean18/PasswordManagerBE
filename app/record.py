@@ -66,7 +66,7 @@ async def get_record(
             content={"status": "error", "message": str(e)}
         )
 
-@record_router.post("/{record_id}/update")
+@record_router.put("/{record_id}/update")
 async def update_record(
     record_id: str,
     record_data: Record,
