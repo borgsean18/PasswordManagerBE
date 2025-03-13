@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Response as fastapiResponse, status
 from fastapi.responses import JSONResponse
 from models.user import LoginUser, LoginResponse, User, Response
-from app.database import psql_create_user, psql_search_user
+from app.database_functions import psql_create_user, psql_search_user
 from app.access_token import create_access_token
 
 user_router = APIRouter(prefix="/user", tags=["User"])

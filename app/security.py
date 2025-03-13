@@ -1,9 +1,34 @@
-from fastapi import APIRouter, status, Header
+from fastapi import APIRouter, status, Header, Depends, HTTPException
 from typing import Annotated
 from fastapi.responses import JSONResponse
 from app.access_token import decode_token
+from fastapi.security import OAuth2PasswordBearer
+import jwt
+from datetime import datetime, timedelta
+import os
+
+# OAuth2 scheme for token authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# JWT settings
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+ALGORITHM = "HS256"
 
 security_router = APIRouter(prefix="/security", tags=["Security"])
+
+def decode_access_token(token: str):
+    """
+    Decode and validate the JWT token
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid authentication credentials: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 @security_router.get("/auth")
 async def auth(

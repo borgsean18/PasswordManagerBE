@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from app.dependencies import get_current_user
-from app.database import psql_create_record, psql_get_record, psql_delete_record, psql_update_record, psql_get_all_records
+from app.database_functions import psql_create_record, psql_get_record, psql_delete_record, psql_update_record, psql_get_all_records
 from models.records import Record
 from uuid import UUID
 

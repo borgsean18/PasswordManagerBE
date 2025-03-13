@@ -4,6 +4,12 @@ from app.user import user_router
 from app.record import record_router
 from app.group import group_router
 from app.security import security_router
+from app.database.connection import initialize_connection_pool, close_connection_pool
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Password Manager",
@@ -27,6 +33,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize resources on startup."""
+    logger.info("Starting up application")
+    await initialize_connection_pool()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    logger.info("Shutting down application")
+    await close_connection_pool()
 
 @app.get("/")
 async def app_root():

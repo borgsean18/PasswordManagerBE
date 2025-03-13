@@ -187,4 +187,4 @@ async def psql_delete_record(record_id: str, user_id: str):
             return result
     except Exception as e:
         logger.error(f"Error deleting record: {str(e)}")
-        raise Exception("Error deleting record")
+        raise Exception("Error deleting record") 
